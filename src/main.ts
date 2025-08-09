@@ -64,10 +64,12 @@ let componentBytes = null;
 let transpiledModule = null;
 let componentExports = {};
 
-const fileInput = document.getElementById("fileInput");
+const fileInput = document.getElementById("fileInput") as HTMLInputElement;
 const dropZone = document.getElementById("dropZone");
-const transpileBtn = document.getElementById("transpileBtn");
-const runBtn = document.getElementById("runBtn");
+const transpileBtn = document.getElementById(
+  "transpileBtn",
+) as HTMLButtonElement;
+const runBtn = document.getElementById("runBtn") as HTMLButtonElement;
 const clearBtn = document.getElementById("clearBtn");
 const output = document.getElementById("output");
 const status = document.getElementById("status");
@@ -126,7 +128,7 @@ async function loadComponent(bytes, filename) {
 }
 
 fileInput.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
+  const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
 
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -157,7 +159,9 @@ dropZone.addEventListener("drop", async (e) => {
 // Load example components
 loadStringReverse.addEventListener("click", async () => {
   try {
-    const response = await fetch("/string-reverse.wasm");
+    const response = await fetch(
+      new URL("/string-reverse.wasm", import.meta.url).href,
+    );
     if (!response.ok) {
       throw new Error(`Failed to load example component (${response.status})`);
     }
@@ -171,7 +175,7 @@ loadStringReverse.addEventListener("click", async () => {
 
 loadAdd.addEventListener("click", async () => {
   try {
-    const response = await fetch("/add.wasm");
+    const response = await fetch(new URL("/add.wasm", import.meta.url).href);
     if (!response.ok) {
       throw new Error(`Failed to load example component (${response.status})`);
     }
@@ -192,6 +196,7 @@ transpileBtn.addEventListener("click", async () => {
     const startTime = performance.now();
     const result = await transpile(componentBytes, {
       name: "component",
+      // @ts-ignore - noTypescript option exists but not in type definitions
       noTypescript: true,
       validLiftingOptimization: false,
     });
@@ -200,17 +205,16 @@ transpileBtn.addEventListener("click", async () => {
     log(`Transpilation completed in ${elapsed}s`, "success");
 
     // Files is an array of tuples: Array<[string, Uint8Array]>
-    const filesArray = result.files;
-    const filesMap = new Map(filesArray);
+    const filesArray = result.files as any;
 
     // Convert to object for easier access
-    const files = {};
+    const files: any = {};
     for (const [filename, content] of filesArray) {
       files[filename] = content;
     }
 
     log(
-      `Generated files: ${filesArray.map(([name]) => name).join(", ")}`,
+      `Generated files: ${filesArray.map(([name]: [string, any]) => name).join(", ")}`,
       "info",
     );
 
@@ -233,7 +237,9 @@ transpileBtn.addEventListener("click", async () => {
 
     for (const [filename, content] of Object.entries(files)) {
       if (filename.endsWith(".wasm")) {
-        const blob = new Blob([content], { type: "application/wasm" });
+        const blob = new Blob([content as BlobPart], {
+          type: "application/wasm",
+        });
         const url = URL.createObjectURL(blob);
         imports[`./${filename}`] = url;
         log(`Created blob URL for ${filename}`, "info");
@@ -370,7 +376,7 @@ function findCallableFunctions(obj, path = "", visited = new WeakSet()) {
           func: value,
           getter: () => {
             // Create a getter function that navigates the path
-            let current = obj;
+            const current = obj;
             return current[key];
           },
         });
@@ -417,7 +423,7 @@ function setupFunctionCalls() {
     log("Setting up function call UI...", "info");
 
     // Store function references for easy access
-    window.__componentFunctions = {};
+    (window as any).__componentFunctions = {};
 
     // Create UI for each function
     functionsFound.forEach(({ path, displayName, func }) => {
@@ -425,7 +431,7 @@ function setupFunctionCalls() {
       const safeName = path.replace(/[^a-zA-Z0-9]/g, "_");
 
       // Store the function reference
-      window.__componentFunctions[safeName] = func;
+      (window as any).__componentFunctions[safeName] = func;
 
       const control = document.createElement("div");
       control.className = "function-control";
@@ -458,7 +464,9 @@ function setupFunctionCalls() {
 
 async function callFunctionBySafeName(safeName, displayName) {
   try {
-    const argsInput = document.getElementById(`args-${safeName}`);
+    const argsInput = document.getElementById(
+      `args-${safeName}`,
+    ) as HTMLInputElement;
     const resultDiv = document.getElementById(`result-${safeName}`);
 
     let args = [];
@@ -475,7 +483,7 @@ async function callFunctionBySafeName(safeName, displayName) {
     }
 
     // Get the function from our stored references
-    const func = window.__componentFunctions[safeName];
+    const func = (window as any).__componentFunctions[safeName];
     if (!func) {
       throw new Error(`Function not found: ${displayName}`);
     }
@@ -494,90 +502,22 @@ async function callFunctionBySafeName(safeName, displayName) {
   }
 }
 
-// Keep the old function for backward compatibility
-async function callFunction(funcPath, safeName) {
-  try {
-    // If safeName not provided, calculate it
-    if (!safeName) {
-      safeName = funcPath.replace(/[^a-zA-Z0-9]/g, "_");
-    }
-
-    const argsInput = document.getElementById(`args-${safeName}`);
-    const resultDiv = document.getElementById(`result-${safeName}`);
-
-    let args = [];
-    if (argsInput.value) {
-      try {
-        args = JSON.parse(argsInput.value);
-        if (!Array.isArray(args)) {
-          args = [args];
-        }
-      } catch {
-        // Try treating it as a single string argument
-        args = [argsInput.value];
-      }
-    }
-
-    // Navigate the path to get the actual function
-    let func = componentExports;
-    const pathParts = funcPath.split(".");
-
-    console.log("Navigating function path:", funcPath, "parts:", pathParts);
-
-    for (const part of pathParts) {
-      if (!func[part]) {
-        console.error(`Cannot find property "${part}" in`, func);
-        throw new Error(`Function not found at path: ${funcPath}`);
-      }
-      func = func[part];
-    }
-
-    if (typeof func !== "function") {
-      console.error("Found value is not a function:", func);
-      throw new Error(`Value at ${funcPath} is not a function`);
-    }
-
-    // Extract display name for logging
-    const displayName = pathParts[pathParts.length - 1].includes("/")
-      ? pathParts[pathParts.length - 1].split("/").pop().split("@")[0]
-      : pathParts[pathParts.length - 1];
-
-    log(
-      `Calling ${displayName}(${args.map((a) => JSON.stringify(a)).join(", ")})`,
-      "info",
-    );
-    const result = await func(...args);
-
-    resultDiv.style.display = "block";
-    resultDiv.textContent = `Result: ${JSON.stringify(result)}`;
-    log(`Result: ${JSON.stringify(result)}`, "success");
-  } catch (error) {
-    const displayName = funcPath
-      .split(".")
-      .pop()
-      .split("/")
-      .pop()
-      .split("@")[0];
-    log(`Error calling ${displayName}: ${error.message}`, "error");
-  }
-}
-
 runBtn.addEventListener("click", async () => {
   try {
     log("Attempting to run component...", "info");
 
     // Check for common entry points
-    if (componentExports.run) {
+    if ((componentExports as any).run) {
       log('Found "run" export, executing...', "info");
-      const result = await componentExports.run();
+      const result = await (componentExports as any).run();
       log(`Run completed: ${JSON.stringify(result)}`, "success");
-    } else if (componentExports.main) {
+    } else if ((componentExports as any).main) {
       log('Found "main" export, executing...', "info");
-      const result = await componentExports.main();
+      const result = await (componentExports as any).main();
       log(`Main completed: ${JSON.stringify(result)}`, "success");
-    } else if (componentExports.start) {
+    } else if ((componentExports as any).start) {
       log('Found "start" export, executing...', "info");
-      const result = await componentExports.start();
+      const result = await (componentExports as any).start();
       log(`Start completed: ${JSON.stringify(result)}`, "success");
     } else {
       log(
