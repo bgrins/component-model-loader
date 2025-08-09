@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig(({ command }) => ({
-  base: command === "build" ? "/<REPO_NAME>/" : "/",
+  base: command === "build" ? "/component-model-loader/" : "/",
   server: {
     headers: {
       "Cross-Origin-Embedder-Policy": "require-corp",
