@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? "/<REPO_NAME>/" : "/",
   server: {
     headers: {
       "Cross-Origin-Embedder-Policy": "require-corp",
@@ -11,4 +12,4 @@ export default defineConfig({
     exclude: ["@bytecodealliance/jco"],
   },
   assetsInclude: ["**/*.wasm"],
-});
+}));
