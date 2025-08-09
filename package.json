@@ -1,0 +1,32 @@
+{
+  "name": "component-model-loader",
+  "private": true,
+  "version": "0.0.1",
+  "author": "",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": "prettier --write"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2",
+    "vite": "^7.1.0"
+  },
+  "dependencies": {
+    "@bytecodealliance/jco": "^1.13.1",
+    "@bytecodealliance/preview2-shim": "^0.17.2"
+  }
+}

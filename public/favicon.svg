@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#654ff0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4a90e2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#0a0e27"/>
+  
+  <!-- Large hexagon outline -->
+  <path d="M64 20 L94 37.3 L94 72.7 L64 90 L34 72.7 L34 37.3 Z" 
+        fill="none" 
+        stroke="url(#gradient)" 
+        stroke-width="4"
+        stroke-linejoin="round"/>
+  
+  <!-- Inner hexagon filled -->
+  <path d="M64 40 L78 48.1 L78 63.9 L64 72 L50 63.9 L50 48.1 Z" 
+        fill="url(#gradient)"
+        opacity="0.8"/>
+  
+  <!-- Center dot -->
+  <circle cx="64" cy="56" r="6" fill="#fff"/>
+</svg>
